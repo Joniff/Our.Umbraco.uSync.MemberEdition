@@ -1,0 +1,11 @@
+bin
+obj
+packages
+App_Data
+
+*.suo
+*.user
+*.nupkg
+*.orig
+*.cache
+.vs/
