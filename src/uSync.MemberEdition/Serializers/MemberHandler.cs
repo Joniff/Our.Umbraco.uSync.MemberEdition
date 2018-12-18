@@ -131,12 +131,6 @@ namespace uSync.MemberEdition.Serializers
 				new XAttribute(UserAttribute, member.Username)
 			);
 
-			//	Do custom properties first, as accessing standard properties creates corresponding pseudo custom properties (in version 7.5.4 at least)
-            foreach (var prop in member.Properties.Where(p => p != null))
-			{
-				node.Add(CreateProperty(prop));
-			}
-
 			node.Add(new XElement(CommentsNode, member.Comments));
 			node.Add(new XElement(FailedPasswordAttemptsNode, member.FailedPasswordAttempts));
 			node.Add(new XElement(IsApprovedNode, member.IsApproved));
@@ -147,17 +141,26 @@ namespace uSync.MemberEdition.Serializers
 			node.Add(new XElement(PasswordQuestionNode, member.PasswordQuestion));
 			node.Add(new XElement(RawPasswordAnswerNode, member.RawPasswordAnswerValue));
 
-			var groups = new XElement(GroupsNode);
-			foreach (var group in System.Web.Security.Roles.GetRolesForUser(member.Username))
+			var securityGroups = System.Web.Security.Roles.GetRolesForUser(member.Username);
+			if (securityGroups.Any())
 			{
-				groups.Add(new XElement(GroupNode, group));
+				var groups = new XElement(GroupsNode);
+				foreach (var group in System.Web.Security.Roles.GetRolesForUser(member.Username))
+				{
+					groups.Add(new XElement(GroupNode, group));
+				}
+				node.Add(groups);
 			}
-			node.Add(groups);
 
 			var memberDto = Database.SingleOrDefault<MemberDto>(member.Id);
 			if (memberDto != null && !string.IsNullOrWhiteSpace(memberDto.Password))
 			{
 				node.Add(new XElement(PasswordNode, memberDto.Password));
+			}
+
+            foreach (var prop in member.Properties.Where(p => p != null && !p.Alias.StartsWith("umbracoMember")))
+			{
+				node.Add(CreateProperty(prop));
 			}
 		
 			return SyncAttempt<XElement>.Succeed(member.Email, node, typeof(IMember), ChangeType.Export);
@@ -240,6 +243,7 @@ namespace uSync.MemberEdition.Serializers
 
 		private bool? Deserialize(XElement node, bool force, out IMember newMember)
 		{
+			bool isNewMember = false;
 			var email = node.Attribute(KeyAttribute);
 			var name = node.Attribute(NameAttribute);
 			var user = node.Attribute(UserAttribute);
@@ -257,9 +261,11 @@ namespace uSync.MemberEdition.Serializers
 			if (member == null)
 			{
 				member = _memberService.CreateMember(user.Value, email.Value, name.Value, MemberType(memberType.Value));
+				isNewMember = true;
 			}
 
 			var groups = new List<string>();
+			string password = null;
 			foreach (var el in node.Elements())
 			{
 				switch (el.Name.LocalName)
@@ -304,7 +310,7 @@ namespace uSync.MemberEdition.Serializers
 						break;
 
 					case PasswordNode:
-						member.RawPasswordValue = el.Value;
+						password = el.Value;
 						break;
 
 					case RawPasswordAnswerNode:
@@ -322,10 +328,50 @@ namespace uSync.MemberEdition.Serializers
 			}
 
 			_memberService.Save(member, true);
-			if (groups.Any())
+
+			if (isNewMember)
 			{
-				System.Web.Security.Roles.AddUserToRoles(member.Username, groups.ToArray());
+				if (groups.Any())
+				{
+					System.Web.Security.Roles.AddUserToRoles(member.Username, groups.ToArray());
+				}
 			}
+			else
+			{
+				var existingGroups = System.Web.Security.Roles.GetRolesForUser(member.Username);
+				if (groups.Any() && !existingGroups.Any())
+				{
+					System.Web.Security.Roles.AddUserToRoles(member.Username, groups.ToArray());
+				}
+				else
+				{
+					if (groups.Any())
+					{
+						var groupsToAdd = groups.Where(x => !existingGroups.Any(y => x == y));
+						System.Web.Security.Roles.AddUserToRoles(member.Username, groupsToAdd.ToArray());
+					}
+					if (existingGroups.Any())
+					{
+						var groupsToRemove = existingGroups.Where(x => !groups.Any(y => x == y));
+						System.Web.Security.Roles.RemoveUserFromRoles(member.Username, groupsToRemove.ToArray());
+					}
+				}
+			}
+
+			if (password != null)
+			{
+				var memberDto = Database.SingleOrDefault<MemberDto>(member.Id);
+				if (memberDto != null)
+				{
+					memberDto.Password = password;
+					Database.Update(memberDto);
+				}
+				else
+				{
+	                LogHelper.Warn<MemberHandler>($"Member {member.Id} doesn\'t exist in table cmsMember even after we have just saved it");
+				}
+			}
+
 			return true;
 		}
 
