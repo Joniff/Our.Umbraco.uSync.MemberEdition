@@ -5,10 +5,13 @@ Currently this allows the importing and exporting of members from any Umbraco 7.
 It doesn't install itself into uSync config files. You will need to edit uSyncBackOffice.Config
 
   Add This line to all &lt;Handlers> sections.
+  
       &lt;HandlerConfig Name="Deploy:MemberHandler" Enabled="true"/>
 
   Also make sure 
-    &lt;HandlerConfig Name="Deploy:MemberTypeHandler" Enabled="true"/>
+  
+      &lt;HandlerConfig Name="Deploy:MemberTypeHandler" Enabled="true"/>
+      
   Is enabled
 
 
