@@ -2,7 +2,7 @@
 
 Currently this allows the importing and exporting of members from any Umbraco 7.5.14 or later.
 
-It doesn't install itself into uSync config files. You will need to edit uSyncBackOffice.Config
+It doesn't install itself into uSync config files. You will need to edit **/config/uSyncBackOffice.Config**
 
   > Add This line to all &lt;Handlers> sections.
   
