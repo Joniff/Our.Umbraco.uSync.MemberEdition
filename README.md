@@ -14,6 +14,8 @@ It doesn't install itself into uSync config files. You will need to edit uSyncBa
       
   >is enabled
 
+- - - -
+
 
 **Limitations**
 
