@@ -212,7 +212,9 @@
     <Compile Include="Rdbms\ContentVersionDto.cs" />
     <Compile Include="Rdbms\MemberDto.cs" />
     <Compile Include="Rdbms\NodeDto.cs" />
+    <Compile Include="Security\Cryptography.cs" />
     <Compile Include="Serializers\MemberHandler.cs" />
+    <Compile Include="Xml\XmlExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
