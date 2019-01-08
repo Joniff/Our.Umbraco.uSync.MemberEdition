@@ -7,8 +7,8 @@
     <ProjectGuid>{6821DBDB-123A-497B-AD28-9ED0FF464346}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>uSync.MemberEdition</RootNamespace>
-    <AssemblyName>uSync.MemberEdition</AssemblyName>
+    <RootNamespace>Our.Umbraco.uSync.MemberEdition</RootNamespace>
+    <AssemblyName>Our.Umbraco.uSync.MemberEdition</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -28,6 +28,9 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>MemberEditon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AutoMapper, Version=3.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -223,12 +226,17 @@
     <None Include="config\uSyncBackOffice.Config" />
     <None Include="config\uSyncCore.Config" />
     <None Include="packages.config" />
+    <None Include="uSync.MemberEdition.nuspec" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="App_plugins\uSync\uSyncDashboard.css" />
     <Content Include="App_plugins\uSync\uSyncDashboard.html" />
     <Content Include="App_plugins\uSync\uSyncDashboardController.js" />
     <Content Include="App_plugins\uSync\uSyncDashboardService.js" />
+    <Content Include="MemberEditon.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>$(SolutionDir)nuget\nuget.exe pack "$(ProjectPath)" -OutputDirectory "$(SolutionDir)nuget"</PostBuildEvent>
+  </PropertyGroup>
 </Project>
