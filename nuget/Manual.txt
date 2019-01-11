@@ -1,0 +1,7 @@
+Add or edit the following lines to /config/uSyncBackOffice.config to enable both MemberTypeHandler and MemberHandler
+
+<Handlers>
+  <HandlerConfig Name="uSync: MemberTypeHandler" Enabled="true" />
+  <HandlerConfig Name="uSync: MemberHandler" Enabled="true" />
+</Handlers>
+

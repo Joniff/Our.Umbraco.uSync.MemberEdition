@@ -221,18 +221,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="App_plugins\uSync\package.manifest" />
-    <None Include="config\dashboard.config" />
-    <None Include="config\uSyncBackOffice.Config" />
-    <None Include="config\uSyncCore.Config" />
-    <None Include="packages.config" />
-    <None Include="uSync.MemberEdition.nuspec" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="uSync.MemberEdition.nuspec">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="App_plugins\uSync\uSyncDashboard.css" />
-    <Content Include="App_plugins\uSync\uSyncDashboard.html" />
-    <Content Include="App_plugins\uSync\uSyncDashboardController.js" />
-    <Content Include="App_plugins\uSync\uSyncDashboardService.js" />
     <Content Include="MemberEditon.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

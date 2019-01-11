@@ -80,8 +80,6 @@ namespace uSync.MemberEdition.Serializers
 			Umbraco.Core.IO.IOHelper.MapPath(uSyncBackOfficeContext.Instance.Configuration.Settings.Folder + "//" + SyncFolder + "//" + memberType.Alias + "//" + member.Email.ToSafeFileName().Replace('.', '-') + "." + FileExtension);
 
 
-		private Cryptography Cryptography(IMember member) => new Cryptography(member.Email + member.Name);
-
 		public void RegisterEvents()
 		{
 			MemberService.Saved += MemberService_Saved;
@@ -165,7 +163,7 @@ namespace uSync.MemberEdition.Serializers
 			var memberDto = Database.SingleOrDefault<MemberDto>(member.Id);
 			if (memberDto != null && !string.IsNullOrWhiteSpace(memberDto.Password))
 			{
-				var cryptography = Cryptography(member);
+				var cryptography = new Cryptography(member.Email + member.Name);
 				node.Add(new XElement(PasswordNode, cryptography.Encrypt(memberDto.Password)));
 			}
 
@@ -213,9 +211,16 @@ namespace uSync.MemberEdition.Serializers
 		public IEnumerable<uSyncAction> ExportAll(string folder)
 		{
 			var actions = new List<uSyncAction>();
-			foreach (var memberType in _memberTypeService.GetAll())
+			try
 			{
-				actions.AddRange(ExportFolder(memberType));
+				foreach (var memberType in _memberTypeService.GetAll())
+				{
+					actions.AddRange(ExportFolder(memberType));
+				}
+			}
+			catch (Exception ex)
+			{
+				LogHelper.Error<MemberHandler>($"Export Failed ", ex);
 			}
 			return actions;
 		}
@@ -357,12 +362,18 @@ namespace uSync.MemberEdition.Serializers
 					if (groups.Any())
 					{
 						var groupsToAdd = groups.Where(x => !existingGroups.Any(y => x == y));
-						System.Web.Security.Roles.AddUserToRoles(member.Username, groupsToAdd.ToArray());
+						if (groupsToAdd != null && groupsToAdd.Any())
+						{
+							System.Web.Security.Roles.AddUserToRoles(member.Username, groupsToAdd.ToArray());
+						}
 					}
 					if (existingGroups.Any())
 					{
 						var groupsToRemove = existingGroups.Where(x => !groups.Any(y => x == y));
-						System.Web.Security.Roles.RemoveUserFromRoles(member.Username, groupsToRemove.ToArray());
+						if (groupsToRemove != null && groupsToRemove.Any())
+						{
+							System.Web.Security.Roles.RemoveUserFromRoles(member.Username, groupsToRemove.ToArray());
+						}
 					}
 				}
 			}
@@ -372,7 +383,7 @@ namespace uSync.MemberEdition.Serializers
 				var memberDto = Database.SingleOrDefault<MemberDto>(member.Id);
 				if (memberDto != null)
 				{
-					var cryptography = Cryptography(member);
+					var cryptography = new Cryptography(email.Value + name.Value);
 					memberDto.Password = cryptography.Decrypt(password);
 					Database.Update(memberDto);
 				}
@@ -432,7 +443,15 @@ namespace uSync.MemberEdition.Serializers
 
 		public IEnumerable<uSyncAction> ImportAll(string folder, bool force)
 		{
-			return ImportFolder(Umbraco.Core.IO.IOHelper.MapPath(folder), force);
+			try
+			{
+				return ImportFolder(Umbraco.Core.IO.IOHelper.MapPath(folder), force);
+			}
+			catch (Exception ex)
+			{
+				LogHelper.Error<MemberHandler>($"Import Failed ", ex);
+			}
+			return Enumerable.Empty<uSyncAction>();
 		}
 
 		// Return True, if the element matches an existing member with same properties, false if they don't match or don't exist, null if we can't import this because of different types
@@ -487,7 +506,6 @@ namespace uSync.MemberEdition.Serializers
 				{
 					actions.AddRange(ReportFolder(child));
 				}
-
 			}
 
 			return actions;
@@ -495,7 +513,16 @@ namespace uSync.MemberEdition.Serializers
 
 		public IEnumerable<uSyncAction> Report(string folder)
 		{
-			return ReportFolder(Umbraco.Core.IO.IOHelper.MapPath(folder));
+			try
+			{
+				return ReportFolder(Umbraco.Core.IO.IOHelper.MapPath(folder));
+			}
+			catch (Exception ex)
+			{
+				LogHelper.Error<MemberHandler>($"Report Failed ", ex);
+			}
+			return Enumerable.Empty<uSyncAction>();
+
 		}
 	}
 }

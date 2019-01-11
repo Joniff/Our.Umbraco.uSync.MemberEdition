@@ -8,134 +8,80 @@ namespace uSync.MemberEdition.Security
 {
 	public class Cryptography
 	{
-		// This constant is used to determine the keysize of the encryption algorithm in bits.
-		// We divide this by 8 within the code below to get the equivalent number of bytes.
-		private const int Keysize = 256;
+		private const int Keysize = 24;
 
-		// This constant determines the number of iterations for the password bytes generation function.
-		private const int DerivationIterations = 1000;
-
-		private string SecretKey = "wAFkd47sA8rjPnyQ2LMrygg4VXxyzJwR";
-		private byte[] Salt = { 
-
-			0x20, 0x22, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29,
-			0x20, 0x22, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29,
-			0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
-			0x20, 0x22, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29,
+		private byte[] GlobalSalt = 
+		{
+			0x77, 0x41, 0x46, 0x6B, 0x64, 0x34, 0x37, 0x73, 0x41, 0x38, 0x72, 0x6A, 0x50, 0x6E, 0x79, 0x51, 0x32, 0x4C, 0x4D, 0x72, 0x79, 0x67, 0x67, 0x34
 		};
 
-		private byte[] Iv = { 
-			0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
-			0x20, 0x22, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29,
-			0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
-			0x20, 0x22, 0x24, 0x29, 0x26, 0x27, 0x28, 0x29,
-		};
+		private byte[] Salt;
 
 		public Cryptography()
 		{
-			Salt = Generate256BitsOfRandomEntropy();
-			Iv = Generate256BitsOfRandomEntropy();
+			Salt = GlobalSalt;
 		}
 
-		public Cryptography(string secretKey)
+		public Cryptography(string salt)
 		{
-			SecretKey = secretKey;
-			var salt = Convert.FromBase64String(Encrypt(secretKey));
-			for (int index = 0; index != Salt.Length && index != salt.Length; index++)
+			Salt = new byte[Keysize];
+			byte[] join = new byte[GlobalSalt.Length + salt.Length];
+			System.Buffer.BlockCopy(GlobalSalt, 0, join, 0, GlobalSalt.Length);
+			System.Buffer.BlockCopy(UTF8Encoding.UTF8.GetBytes(salt), 0, join, GlobalSalt.Length, salt.Length);
+			MD5CryptoServiceProvider hashmd5 = new MD5CryptoServiceProvider();
+			var hash = hashmd5.ComputeHash(join);
+			for (int index = 0; index != Keysize; index++)
 			{
-				Salt[index] = salt[index];
-			}
-			var iv = Convert.FromBase64String(Encrypt(secretKey));
-			for (int index = 0; index != Iv.Length && index != iv.Length; index++)
-			{
-				Iv[index] = iv[index];
+				Salt[index] = (index < hash.Length) ? (byte) (hash[index] ^ GlobalSalt[index]) : GlobalSalt[index];
 			}
 		}
 
-		public string Encrypt(string plainText)
+		public string Encrypt(string toEncrypt)
 		{
-			// Salt and IV is randomly generated each time, but is preprended to encrypted cipher text
-			// so that the same Salt and IV values can be used when decrypting.  
-			var saltStringBytes = Salt;
-			var ivStringBytes = Iv;
-			var plainTextBytes = Encoding.UTF8.GetBytes(plainText);
-			using (var password = new Rfc2898DeriveBytes(SecretKey, saltStringBytes, DerivationIterations))
+			try
 			{
-				var keyBytes = password.GetBytes(Keysize / 8);
-				using (var symmetricKey = new RijndaelManaged())
+				byte[] toEncryptArray = UTF8Encoding.UTF8.GetBytes(toEncrypt);
+
+				using (TripleDESCryptoServiceProvider tdes = new TripleDESCryptoServiceProvider())
 				{
-					symmetricKey.BlockSize = 256;
-					symmetricKey.Mode = CipherMode.CBC;
-					symmetricKey.Padding = PaddingMode.PKCS7;
-					using (var encryptor = symmetricKey.CreateEncryptor(keyBytes, ivStringBytes))
-					{
-						using (var memoryStream = new MemoryStream())
-						{
-							using (var cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
-							{
-								cryptoStream.Write(plainTextBytes, 0, plainTextBytes.Length);
-								cryptoStream.FlushFinalBlock();
-								// Create the final bytes as a concatenation of the random salt bytes, the random iv bytes and the cipher bytes.
-								var cipherTextBytes = saltStringBytes;
-								cipherTextBytes = cipherTextBytes.Concat(ivStringBytes).ToArray();
-								cipherTextBytes = cipherTextBytes.Concat(memoryStream.ToArray()).ToArray();
-								memoryStream.Close();
-								cryptoStream.Close();
-								return Convert.ToBase64String(cipherTextBytes);
-							}
-						}
-					}
+					tdes.Key = Salt;
+					tdes.Mode = CipherMode.ECB;
+					tdes.Padding = PaddingMode.PKCS7;
+
+					ICryptoTransform cTransform = tdes.CreateEncryptor();
+					byte[] resultArray = cTransform.TransformFinalBlock(toEncryptArray, 0, toEncryptArray.Length);
+
+					return Convert.ToBase64String(resultArray, 0, resultArray.Length);
 				}
 			}
+			catch (Exception ex)
+			{
+			}
+			return null;
 		}
 
-		public string Decrypt(string cipherText)
+		public string Decrypt(string toDecrypt)
 		{
-			// Get the complete stream of bytes that represent:
-			// [32 bytes of Salt] + [32 bytes of IV] + [n bytes of CipherText]
-			var cipherTextBytesWithSaltAndIv = Convert.FromBase64String(cipherText);
-			// Get the saltbytes by extracting the first 32 bytes from the supplied cipherText bytes.
-			var saltStringBytes = cipherTextBytesWithSaltAndIv.Take(Keysize / 8).ToArray();
-			// Get the IV bytes by extracting the next 32 bytes from the supplied cipherText bytes.
-			var ivStringBytes = cipherTextBytesWithSaltAndIv.Skip(Keysize / 8).Take(Keysize / 8).ToArray();
-			// Get the actual cipher text bytes by removing the first 64 bytes from the cipherText string.
-			var cipherTextBytes = cipherTextBytesWithSaltAndIv.Skip((Keysize / 8) * 2).Take(cipherTextBytesWithSaltAndIv.Length - ((Keysize / 8) * 2)).ToArray();
-
-			using (var password = new Rfc2898DeriveBytes(SecretKey, saltStringBytes, DerivationIterations))
+			try
 			{
-				var keyBytes = password.GetBytes(Keysize / 8);
-				using (var symmetricKey = new RijndaelManaged())
+				byte[] toEncryptArray = Convert.FromBase64String(toDecrypt);
+
+				using (TripleDESCryptoServiceProvider tdes = new TripleDESCryptoServiceProvider())
 				{
-					symmetricKey.BlockSize = 256;
-					symmetricKey.Mode = CipherMode.CBC;
-					symmetricKey.Padding = PaddingMode.PKCS7;
-					using (var decryptor = symmetricKey.CreateDecryptor(keyBytes, ivStringBytes))
-					{
-						using (var memoryStream = new MemoryStream(cipherTextBytes))
-						{
-							using (var cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
-							{
-								var plainTextBytes = new byte[cipherTextBytes.Length];
-								var decryptedByteCount = cryptoStream.Read(plainTextBytes, 0, plainTextBytes.Length);
-								memoryStream.Close();
-								cryptoStream.Close();
-								return Encoding.UTF8.GetString(plainTextBytes, 0, decryptedByteCount);
-							}
-						}
-					}
+					tdes.Key = Salt;
+					tdes.Mode = CipherMode.ECB;
+					tdes.Padding = PaddingMode.PKCS7;
+
+					ICryptoTransform cTransform = tdes.CreateDecryptor();
+					byte[] resultArray = cTransform.TransformFinalBlock(toEncryptArray, 0, toEncryptArray.Length);
+
+					return UTF8Encoding.UTF8.GetString(resultArray);
 				}
 			}
-		}	
-
-		private byte[] Generate256BitsOfRandomEntropy()
-		{
-			var randomBytes = new byte[32]; // 32 Bytes will give us 256 bits.
-			using (var rngCsp = new RNGCryptoServiceProvider())
+			catch (Exception ex)
 			{
-				// Fill the array with cryptographically secure random bytes.
-				rngCsp.GetBytes(randomBytes);
 			}
-			return randomBytes;
+			return null;
 		}
 
 	}

@@ -2,13 +2,12 @@
 <package>
   <metadata>
 	<id>Our.Umbraco.uSync.MemberEdition</id>
-	<version>1.0.0</version>
+	<version>1.0.5</version>
 	<title>Our.Umbraco.uSync.MemberEdition</title>
 	<authors>Jonathan Richards</authors>
 	<owners>Joniff</owners>
-	<licenseUrl>https://raw.githubusercontent.com/Joniff//Our.Umbraco.uSync.MemberEdition/docs/Licence.txt</licenseUrl>
-	<projectUrl>https://github.com/Joniff/Our.Umbraco.uSync.MemberEdition</projectUrl>
-	<iconUrl>https://raw.githubusercontent.com/Joniff/Terratype/master/src/Our.Umbraco.uSync.MemberEdition/docs/MemberEditon.ico</iconUrl>
+	<licenseUrl>https://raw.githubusercontent.com/Joniff/Our.Umbraco.uSync.MemberEdition/master/docs/Licence.txt</licenseUrl>
+	<iconUrl>https://raw.githubusercontent.com/Joniff/Our.Umbraco.uSync.MemberEdition/master/docs/MemberEditon.ico</iconUrl>
 	<requireLicenseAcceptance>false</requireLicenseAcceptance>
 	<description>Allows importing and exporting of Umbraco Members using uSync</description>
 	<releaseNotes>
@@ -17,10 +16,9 @@
 	<copyright>Copyright 2019</copyright>
 	<tags>Umbraco uSync member</tags>
 	<dependencies>
-	  <dependency id="UmbracoCms.Core" version="7.5.14" />
+	  <dependency id="uSync" version="3.1.5.740" />
 	</dependencies>
   </metadata>
   <files>
-	<!--<file src="App_Plugins\**\*.*" target="content\App_Plugins" />-->
   </files>
 </package>
