@@ -297,7 +297,7 @@ namespace uSync.MemberEdition.Serializers
 					case GroupsNode:
 						foreach (var group in el.Elements())
 						{
-							groups.Add(el.Value);
+							groups.Add(group.Value);
 						}
 						break;
 
